@@ -18,3 +18,18 @@
 #define BLOCK_SIZE 512
 // Grandezza massima del nome di una directory
 #define NAME_SIZE 32
+
+// Struttura che rappresenta un blocco di memoria
+typdef struct{
+    char name[NAME_SIZE];
+    int size;
+    int start_block;
+    int is_dir;
+} Block;
+
+// Struttura che rappresenta un file system
+typedef struct{
+    Block blocks[MAX_BLOCKS];
+    int n_blocks;
+    int first_free_block;
+} FileSystem;

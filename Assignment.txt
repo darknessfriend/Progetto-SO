@@ -1,0 +1,41 @@
+Guidelines for projects:
+
+General:
+- All projects should be hosted on github/gitlab or similars.
+
+- Each student performs commits using his own account.
+
+- We want to see the individual commits.
+
+- Projects will be subject to anti plagiarism check and memory check (valgrind) when applicable
+
+- You can use/reuse all the code presented at lesson and in the repo.
+
+- You are allowed to ask stack overflow (or similar) how to solve specific problems
+
+- The projects are (mostly) individual.
+
+  Special projects (to be discussed with the teachers) might be done in groups.
+  The complecity of a group project will be roughly  proportional to the number
+  of components.
+  In this case, the contribution of each member in the group to the development
+  should be made clear.  Comment your sections in the source with some
+  initials or nickname
+
+Linux Projects
+   
+L2. File System FAT .
+   Implement a file system that uses a pseudo "FAT" on an mmapped buffer.
+   The functions to implement are
+
+   createFile
+   eraseFile
+   write (potentially extending the file boundaries)
+   read
+   seek
+   createDir
+   eraseDir
+   changeDir
+   listDir
+
+   The opening of a file should return a "FileHandle" that stores the position in a file.
