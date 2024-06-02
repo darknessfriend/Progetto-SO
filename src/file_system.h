@@ -10,7 +10,7 @@
 
 
 // Inizio a definire le strutture che saranno utilizzate per la
-// gestione del mio file system.
+// gestione del mio file system e le variabili globali che mi serviranno
 
 // Numero massimo di blocchi di memoria che posso utilizzare
 #define MAX_BLOCKS 1024
