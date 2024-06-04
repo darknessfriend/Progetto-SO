@@ -27,8 +27,24 @@ typdef struct{
     int is_dir;
 } Block;
 
+// Struttura che rappresenta un file ( il nostro file desriptor )
+typdef struct{
+    int id;
+    int pos;
+    int size;
+    int mode;
+} FileHandle;
+
+// Struttura che rappresenta l'area riservata del file system
+// contiene informazioni non di nostro interess, ma ne terrò comunque
+// conto per completezza.
+typedef struct __attribute__((__packed__)) ReservedArea{
+    
+} ReservedArea;
+
 // Struttura che rappresenta un file system
 typedef struct{
+    ReservedArea reserved_area;
     Block blocks[MAX_BLOCKS];
     int n_blocks;
     int first_free_block;
