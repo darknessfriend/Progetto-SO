@@ -49,3 +49,25 @@ typedef struct{
     int n_blocks;
     int first_free_block;
 } FileSystem;
+
+// Definisco il nome delle funzioni che andrò ad implementare:
+// inizializzazione del file system
+void initFS();
+// creazione di un file
+FileHandle* createFile(const char* filename);
+// cancellazione di un file
+void eraseFile(const char* filename);
+// scrittura di un file
+void writeFile(FileHandle* handle, const void* buffer, size_t size);
+// lettura di un file
+void readFile(FileHandle* handle, void* buffer, size_t size);
+// apertura di un file
+void seekFile(FileHandle* handle, uint32_t position);
+// creazione di una directory
+void createDir(const char* dirname);
+// cancellazione di una directory
+void eraseDir(const char* dirname);
+// cambio di directory
+void changeDir(const char* dirname);
+// stampa del contenuto di una directory
+void listDir();
