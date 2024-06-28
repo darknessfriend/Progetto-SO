@@ -39,7 +39,10 @@ typdef struct{
 // contiene informazioni non di nostro interess, ma ne terrò comunque
 // conto per completezza.
 typedef struct __attribute__((__packed__)) ReservedArea{
-    
+    int placeholder1 = 0;
+    int placeholder2 = 0;
+    int placeholder3 = 0;
+    int placeholder4 = 0;
 } ReservedArea;
 
 // Struttura che rappresenta un file system
