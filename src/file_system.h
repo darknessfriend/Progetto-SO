@@ -16,27 +16,11 @@
 #define MAX_BLOCKS 1024
 // Dimensione di un blocco
 #define BLOCK_SIZE 512
-// Grandezza massima del nome di una directory
+// Grandezza massima del nome di un file/directory
 #define NAME_SIZE 32
 
-// Struttura che rappresenta un blocco di memoria
-typdef struct{
-    char name[NAME_SIZE];
-    int size;
-    int start_block;
-    int is_dir;
-} Block;
-
-// Struttura che rappresenta un file ( il nostro file desriptor )
-typdef struct{
-    int id;
-    int pos;
-    int size;
-    int mode;
-} FileHandle;
-
-// Struttura che rappresenta l'area riservata del file system
-// contiene informazioni non di nostro interess, ma ne terrò comunque
+// Struttura che rappresenta l'area riservata del file system.
+// Contiene informazioni non di nostro interess, ma ne terrò comunque
 // conto per completezza.
 typedef struct __attribute__((__packed__)) ReservedArea{
     int placeholder1 = 0;
@@ -45,12 +29,26 @@ typedef struct __attribute__((__packed__)) ReservedArea{
     int placeholder4 = 0;
 } ReservedArea;
 
+// Struttura che rappresenta un file ( il nostro file desriptor )
+typdef struct{
+    char filename[NAME_SIZE];
+    int size;
+    int start_block;
+} FileHandle;
+
+// Struttura che rappresenta una directory ( lista di file e directory )
+typedf struct{
+    char dirname[NAME_SIZE];
+    FileHandle* files[];
+    DirEntry* dirs[];
+} DirEntry;
+
 // Struttura che rappresenta un file system
 typedef struct{
+    int free_blocks[MAX_BLOCKS];
     ReservedArea reserved_area;
-    Block blocks[MAX_BLOCKS];
-    int n_blocks;
-    int first_free_block;
+    DirEntry* root;
+    DirEntry* current_dir;
 } FileSystem;
 
 // Definisco il nome delle funzioni che andrò ad implementare:
