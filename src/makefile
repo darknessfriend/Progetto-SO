@@ -6,7 +6,7 @@ CCOPTS=-std=gnu99 -g -Wall
 OBJS=fs_test.o file_system.o
 
 # Nome del binario
-BINS=filesystem
+BINS=mount
 
 # File header
 HEADERS=file_system.h 
@@ -18,7 +18,7 @@ all: $(BINS)
 	$(CC) $(CCOPTS) -c -o $@  $<
 
 # Compilazione del binario filesystem
-filesystem:	fs_test.c file_system.c
+mount:	fs_test.c file_system.c
 	$(CC) -$(CCOPTS) -o $@ $^
 
 # Elimina i file oggetto e l'eseguibile

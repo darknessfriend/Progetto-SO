@@ -1,6 +1,6 @@
 // Importo librerie necessarie ( classiche più quelle utilizzate dal professore )
 // #include <unistd.h>
-#include <stdint.h>
+#include <stdint.h>        // uint8_t
 // #include <stdio.h>
 // #include <assert.h>
 // #include <string.h>
@@ -50,14 +50,14 @@ typedef struct{
 // Struttura che rappresenta un file system
 typedef struct{
     ReservedArea* reserved_area;                    // Offset 0
-    int* FAT[MAX_BLOCKS];                           // Offset 8
-    int start_index;                                // Offset 8 + 1024 * 8 = 8200
+    int* FAT            ;                           // Offset 8
+    int start_index;                                // Offset 16
     // uint8 sono 8 bit ovvero 1 byte. Noi volevamo allocare 512 byte per blocco
     // quindi abbiamo bisogno di 512 uint8 per blocco.
-    uint8_t data_blocks[MAX_BLOCKS][BLOCK_SIZE];    // Offset 8204
-    DirEntry* root;                                 // Offset 8204 + 1024 * 512 = 532492
-    DirEntry* current_dir;                          // Offset 532492 + 8 = 532500
-} FileSystem;                                       // TOT: 532508 bytes
+    uint8_t data_blocks[MAX_BLOCKS][BLOCK_SIZE];    // Offset 20
+    DirEntry* root;                                 // Offset 20 + 1024 * 512 = 524308
+    DirEntry* current_dir;                          // Offset 524308 + 8 = 524316
+} FileSystem;                                       // TOT: 524324 bytes
 
 // Dichiaro le funzioni che andrò ad implementare:
 // inizializzazione del file system
@@ -73,10 +73,12 @@ void readFile(FileHandle* handle, void* buffer, size_t size);
 // apertura di un file
 void seekFile(FileHandle* handle, int position);
 // creazione di una directory
-void createDir(const char* dirname);
+DirEntry* createDir(const char* dirname);
 // cancellazione di una directory
 void eraseDir(const char* dirname);
 // cambio di directory
 void changeDir(const char* dirname);
 // stampa del contenuto di una directory
 void listDir();
+// cancellazione del file system
+void deleteFS(FileSystem* fs);
