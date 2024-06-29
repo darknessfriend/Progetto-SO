@@ -41,11 +41,16 @@ typedef struct{
 } FileHandle;                   // TOT: 40 bytes
 
 // Struttura che rappresenta una directory ( lista di file e directory )
-typedef struct{
+struct DirEntry{
     char dirname[NAME_SIZE];                // Offset 0
-    FileHandle* files[MAX_FILES];           // Offset 32
-    struct DirEntry* dirs[MAX_FILES];       // Offset 32 + 64 * 8 = 544    
-} DirEntry;                                 // TOT: 1056 bytes
+    int num_files;                          // Offset 32
+    int num_dirs;                           // Offset 36
+    FileHandle* files[MAX_FILES];           // Offset 40
+    struct DirEntry* dirs[MAX_FILES];       // Offset 40 + 64 * 8 = 552
+};                                          // TOT: 1064 bytes
+// Definisco il tipo DirEntry (Necessario per la ricorsione)
+struct DirEntry;
+typedef struct DirEntry DirEntry;
 
 // Struttura che rappresenta un file system
 typedef struct{
@@ -73,12 +78,12 @@ void readFile(FileHandle* handle, void* buffer, size_t size);
 // apertura di un file
 void seekFile(FileHandle* handle, int position);
 // creazione di una directory
-DirEntry* createDir(const char* dirname);
+void createDir(FileSystem* fs, char* dirname);
 // cancellazione di una directory
 void eraseDir(const char* dirname);
 // cambio di directory
 void changeDir(const char* dirname);
 // stampa del contenuto di una directory
-void listDir();
+void listDir(FileSystem* fs);
 // cancellazione del file system
 void deleteFS(FileSystem* fs);

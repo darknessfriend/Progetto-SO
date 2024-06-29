@@ -33,10 +33,12 @@ FileSystem* initFS() {
         perror("Error: malloc failed.\n");
         exit(1);
     }
+    // Inizializzo aree di memoria riservata
     ra->placeholder1 = 0;
     ra->placeholder2 = 0;
     ra->placeholder3 = 0;
     ra->placeholder4 = 0;
+    // Assegno la memoria riservata al file system
     fs->reserved_area = ra;
 
     // Inizializzo FAT table: -1 indica che il blocco è libero
@@ -70,17 +72,52 @@ FileSystem* initFS() {
     }
 
     // Inizializzo la root directory
-    DirEntry* root = createDir("/");
-    fs->root = root;
+    // Inizializzo la directory
+    fs->root = (DirEntry*) malloc(sizeof(DirEntry));
+    // Gestisco l'errore
+    if (fs->root == NULL) {
+        perror("Error: malloc failed.\n");
+        exit(1);
+    }
+    // Copio il nome della directory
+    char* ret1 = strcpy(fs->root->dirname,"/");
+    // Gestisco l'errore
+    if (ret1 == NULL) {
+        perror("Error: strcpy failed.\n");
+        exit(1);
+    }
+    // Inizializzo numero di file e directory
+    fs->root->num_files = 0;
+    fs->root->num_dirs = 0;
+    // Inizializzo i file e le directory
+    for (int i = 0; i < MAX_FILES; i++) {
+        fs->root->files[i] = NULL;
+        fs->root->dirs[i] = NULL;
+    }
 
     // Inizializzo la directory corrente
-    fs->current_dir = root;
+    fs->current_dir = fs->root;
 
     return fs;
 }
 
 // Creazione di una directory
-DirEntry* createDir(const char* dirname) {
+void createDir(FileSystem* fs, char* dirname) {
+
+    // Controllo parametri in input
+    if (fs == NULL || dirname == NULL) {
+        printf("Error: invalid input parameters in createDir.\n");
+        return;
+    }
+
+    // Controllo se la directory esiste già
+    for (int i = 0; i < fs->current_dir->num_dirs; i++) {
+        if (strcmp(fs->current_dir->dirs[i]->dirname, dirname) == 0) {
+            printf("Error: directory already exists.\n");
+            return;
+        }
+    }
+
     // Inizializzo la directory
     DirEntry* dir = (DirEntry*) malloc(sizeof(DirEntry));
     // Gestisco l'errore
@@ -88,6 +125,7 @@ DirEntry* createDir(const char* dirname) {
         perror("Error: malloc failed.\n");
         exit(1);
     }
+
     // Copio il nome della directory
     char* ret = strncpy(dir->dirname, dirname, NAME_SIZE);
     // Gestisco l'errore
@@ -95,12 +133,33 @@ DirEntry* createDir(const char* dirname) {
         perror("Error: strncpy failed.\n");
         exit(1);
     }
+
+    // Inizializzo numero di file e directory
+    dir->num_files = 0;
+    dir->num_dirs = 0;
+
     // Inizializzo i file e le directory
     for (int i = 0; i < MAX_FILES; i++) {
         dir->files[i] = NULL;
         dir->dirs[i] = NULL;
     }
-    return dir;
+
+    // Aggiungo la directory alla directory corrente
+    fs->current_dir->dirs[fs->current_dir->num_dirs] = dir;
+    fs->current_dir->num_dirs++;
+}
+
+// Stampa il contenuto della directory corrente
+void listDir(FileSystem* fs){
+    printf("Directory corrente: %s\n", fs->current_dir->dirname);
+    printf("Files:\n");
+    for(int i = 0; i < fs->current_dir->num_files; i++){
+        printf("%s\n", fs->current_dir->files[i]->filename);
+    }
+    printf("Directories:\n");
+    for(int i = 0; i < fs->current_dir->num_dirs; i++){
+        printf("%s\n", fs->current_dir->dirs[i]->dirname);
+    }
 }
 
 // Cancellazione del file system

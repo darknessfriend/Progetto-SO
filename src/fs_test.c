@@ -16,9 +16,21 @@ FileSystem* fs;
 int main(){
     // Inizializzo filesystem
     fs = initFS();
-    printf("Test (should return -1):\n%d;\n",fs->FAT[104]);
-    printf("Test (should return /):\n%s;\n",fs->root->dirname);
-    printf("Test (should return /):\n%s;\n",fs->current_dir->dirname);
+    // Test sull'inizializzazione del file system
+    printf("---------- Test sull'inizializzazione del file system ----------\n");
+    printf("Test (dovrebbe ritornare -1): %d;\n",fs->FAT[104]);
+    printf("Test (dovrebbe ritornare 0): %d;\n",fs->data_blocks[0][0]);
+    printf("Test (dovrebbe ritornare /): %s;\n",fs->root->dirname);
+    printf("Test (dovrebbe ritornare /): %s;\n",fs->current_dir->dirname);
+    printf("----------- Test initFS completati ----------\n");
+    // Creo una directory come subdirectory della root
+    printf("---------- Test generale file system ----------\n");
+    printf("Creo una directory come subdirectory della root:\n");
+    createDir(fs,"subdir");
+    printf("Creo una directory con lo stesso nome ( va in errore gestito e continua l'esecuzione ).\n");
+    createDir(fs,"subdir");
+    listDir(fs);
+    // Dealloco il file system
     deleteFS(fs);
     printf("Done. Exiting ...\n");
     return 0;
