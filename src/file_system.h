@@ -52,7 +52,7 @@ typedef struct{
     ReservedArea reserved_area;
     // uint8 sono 8 bit ovvero 1 byte. Noi volevamo allocare 512 byte per blocco
     // quindi abbiamo bisogno di 512 uint8 per blocco.
-    uint8_t free_blocks[MAX_BLOCKS][BLOCK_SIZE];
+    int FAT[MAX_BLOCKS];
     DirEntry* root;
     DirEntry* current_dir;
 } FileSystem;
