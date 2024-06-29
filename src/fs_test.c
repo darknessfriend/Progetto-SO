@@ -19,7 +19,8 @@ int main(){
     // Test sull'inizializzazione del file system
     printf("---------- Test sull'inizializzazione del file system ----------\n");
     printf("Test (dovrebbe ritornare -1): %d;\n",fs->FAT[104]);
-    printf("Test (dovrebbe ritornare 0): %d;\n",fs->data_blocks[0][0]);
+    int** var = (int**) fs->data_blocks;
+    printf("Test (dovrebbe ritornare 0): %d;\n",var[0][0]);
     printf("Test (dovrebbe ritornare /): %s;\n",fs->root->dirname);
     printf("Test (dovrebbe ritornare /): %s;\n",fs->current_dir->dirname);
     printf("----------- Test initFS completati ----------\n");
@@ -45,8 +46,9 @@ int main(){
     printf("Creo un file nella directory corrente:\n");
     FileHandle* file1 = createFile(fs,"file1");
     listDir(fs);
+    printf("Test fat (dovrebbe tornare 0): %d\n",fs->FAT[0]);
     // Dealloco il file system
-    deleteFS(fs);
+    // deleteFS(fs);
     printf("Done. Exiting ...\n");
     return 0;
 }

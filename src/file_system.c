@@ -62,7 +62,7 @@ FileSystem* initFS() {
     }
 
     // Inizializzo l'indice di partenza
-    fs->start_index = -1;
+    fs->free_blocks = 1024;
 
     // Inizializzo il data block
     // Mappo l'area di memoria puntata dal data block, alloco MAX_BLOCKS * BLOCK_SIZE bytes
@@ -70,11 +70,19 @@ FileSystem* initFS() {
     // MAP_PRIVATE | MAP_ANONYMOUS indica che la memoria è privata e non è associata ad alcun file, infatti
     // il file descriptor è -1 propio perchè non è associato ad alcun file. Non ho bisogno di memset perchè
     // con la flag MAP_ANONYMOUS la memoria è già inizializzata a 0.
-    ret = mmap(fs->data_blocks, MAX_BLOCKS * BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    fs->data_blocks = (void**) mmap(NULL, MAX_BLOCKS * sizeof(void*), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     // Gestisco l'errore
-    if (ret == MAP_FAILED) {
+    if (fs->data_blocks == MAP_FAILED) {
         perror("Error: mmap failed.\n");
         exit(1);
+    }
+    for (int i = 0; i < MAX_BLOCKS; i++) {
+        fs->data_blocks[i] = (void*) mmap(NULL, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        // Gestisco l'errore
+        if (*fs->data_blocks == MAP_FAILED) {
+            perror("Error: mmap failed.\n");
+            exit(1);
+        }
     }
 
     // Inizializzo la root directory
@@ -263,7 +271,7 @@ FileHandle* createFile(FileSystem* fs, const char* filename){
     for (int i = 0; i < MAX_BLOCKS; i++) {
         if (fs->FAT[i] == -1) {
             block = i;
-            fs->FAT[i] = i;
+            fs->FAT[i] = 0; // 0 indica che il blocco è occupato
             break;
         }
     }
@@ -283,6 +291,109 @@ FileHandle* createFile(FileSystem* fs, const char* filename){
     return file;
 }
 
+// Cancellare un file
+// void eraseFile(FileSystem* fs, const char* filename){
+//     // Controllo parametri in input
+//     if (fs == NULL || filename == NULL) {
+//         printf("Error: invalid input parameters in eraseFile.\n");
+//         return;
+//     }
+//     // Controllo se il file esiste
+//     for (int i = 0; i < fs->current_dir->num_files; i++) {
+//         if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
+//             // Libero il blocco
+//             fs->FAT[fs->current_dir->files[i]->start_block] = -1;
+//             memset(fs->data_blocks[fs->current_dir->files[i]->start_block],0,BLOCK_SIZE);
+//             // Libero il file
+//             free(fs->current_dir->files[i]);
+//             // Sposto i file successivi
+//             for (int j = i; j < fs->current_dir->num_files - 1; j++) {
+//                 fs->current_dir->files[j] = fs->current_dir->files[j + 1];
+//             }
+//             fs->current_dir->num_files--;
+//             printf("File %s deleted.\n", filename);
+//             return;
+//         }
+//     }
+//     printf("Error: file does not exist.\n");
+// }
+
+// Scrivere un file
+void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t size){
+    // Controllo parametri in input
+    if (fs == NULL || handle == NULL || buffer == NULL) {
+        printf("Error: invalid input parameters in writeFile.\n");
+        return;
+    }
+    // Controllo se la dimensione del file è sufficiente
+    if (size > fs->free_blocks * BLOCK_SIZE) {
+        printf("Error: file size too large.\n");
+        return;
+    }
+
+    // Scrivo il primo blocco di memoria
+    void* ret = memcpy(fs->data_blocks[handle->start_block], buffer, BLOCK_SIZE);
+    // Gestisco l'errore
+    if (ret == NULL) {
+        perror("Error: memcpy failed.\n");
+        exit(1);
+    }
+    // Aggiorno la dimensione del file
+    size-=BLOCK_SIZE;
+    // Aggiorno il numero di blocchi liberi
+    fs->free_blocks--;
+
+    // Scrivo il file sui blocchi di memoria liberi:
+    // Memorizzo l'indice del blocco precedente in modo da poterlo collegare al blocco successivo
+    // nella FAT table.
+    int previous_block = handle->start_block;
+    // Memorizzo il numero di blocchi allocati spostare il puntatore del buffer in input e calcolare
+    // la dimensione della memoria allocata alla fine.
+    int allocated_blocks = 1;
+    // Memorizzo un indice per scorrere la FAT table.
+    for(int i = 0; i < MAX_BLOCKS; i++){
+        if (size <= 0) {
+            break;
+        }
+        // Ho trovato un blocco libero nella fat table
+        if(fs->FAT[i] == -1){
+            // Scrivo il blocco di memoria nel data block
+            ret = memcpy(fs->data_blocks[i], buffer + allocated_blocks*BLOCK_SIZE, BLOCK_SIZE);
+            // Gestisco l'errore
+            if (ret == NULL) {
+                perror("Error: memcpy failed.\n");
+                exit(1);
+            }
+            // Collego il blocco precedente al blocco successivo
+            fs->FAT[previous_block] = i;
+            // Aggiorno l'indice del blocco precedente
+            previous_block = i;
+            // Aggiorno il numero di blocchi allocati
+            allocated_blocks++;
+            // Aggiorno la dimensione del file ancora da allocare
+            size-=BLOCK_SIZE;
+            // Aggiorno il numero di blocchi liberi
+            fs->free_blocks--;
+        }
+    }
+
+    // Alla fine della nostra operazione, la l'elemento successivo dell'ultimo blocco allocato
+    // deve essere -1. Lo ricerco e lo setto.
+    if ( fs->free_blocks > 0 ) {
+        for (int i = 0; i < MAX_BLOCKS; i++) {
+            if (fs->FAT[i] == -1) {
+                fs->FAT[previous_block] = i;
+                break;
+            }
+        }
+    }
+    else {
+        printf("Error: the file was allocated successfully, however there are no more blocks available!\n");
+    }
+
+    handle->size = allocated_blocks*BLOCK_SIZE;
+}
+
 // Cancellazione del file system
 void deleteFS(FileSystem* fs) {
     // Controllo parametri in input
@@ -295,6 +406,9 @@ void deleteFS(FileSystem* fs) {
     // Libero la FAT table
     free(fs->FAT);
     // Libero il data block
+    for (int i = 0; i < MAX_BLOCKS; i++) {
+        munmap(fs->data_blocks[i], BLOCK_SIZE);
+    }
     munmap(fs->data_blocks, MAX_BLOCKS * BLOCK_SIZE);
     // Libero la root directory
     free(fs->root);

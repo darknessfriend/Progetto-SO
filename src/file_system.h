@@ -55,11 +55,9 @@ typedef struct DirEntry DirEntry;
 // Struttura che rappresenta un file system
 typedef struct{
     ReservedArea* reserved_area;                    // Offset 0
-    int* FAT            ;                           // Offset 8
-    int start_index;                                // Offset 16
-    // uint8 sono 8 bit ovvero 1 byte. Noi volevamo allocare 512 byte per blocco
-    // quindi abbiamo bisogno di 512 uint8 per blocco.
-    uint8_t data_blocks[MAX_BLOCKS][BLOCK_SIZE];    // Offset 20
+    int* FAT;                                       // Offset 8
+    int free_blocks;                                // Offset 16
+    void** data_blocks;                             // Offset 20
     DirEntry* root;                                 // Offset 20 + 1024 * 512 = 524308
     DirEntry* current_dir;                          // Offset 524308 + 8 = 524316
 } FileSystem;                                       // TOT: 524324 bytes
@@ -70,9 +68,9 @@ FileSystem* initFS();
 // creazione di un file
 FileHandle* createFile(FileSystem* fs, const char* filename);
 // cancellazione di un file
-void eraseFile(const char* filename);
+void eraseFile(FileSystem* fs, const char* filename);
 // scrittura di un file
-void writeFile(FileHandle* handle, const void* buffer, size_t size);
+void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t size);
 // lettura di un file
 void readFile(FileHandle* handle, void* buffer, size_t size);
 // apertura di un file
