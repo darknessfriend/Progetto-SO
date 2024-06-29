@@ -30,6 +30,20 @@ int main(){
     printf("Creo una directory con lo stesso nome ( va in errore gestito e continua l'esecuzione ).\n");
     createDir(fs,"subdir");
     listDir(fs);
+    printf("Cambio directory corrente in subdir:\n");
+    changeDir(fs,"subdir");
+    printf("Creo 2 directory come subdirectory della subdir:\n");
+    createDir(fs,"subdir2");
+    createDir(fs,"subdir3");
+    listDir(fs);
+    printf("Ne elimino una:\n");
+    eraseDir(fs,"subdir2");
+    listDir(fs);
+    printf("Torno alla root:\n");
+    changeDir(fs,"/");
+    listDir(fs);
+    printf("Creo un file nella directory corrente:\n");
+    createFile(fs,"file1");
     // Dealloco il file system
     deleteFS(fs);
     printf("Done. Exiting ...\n");

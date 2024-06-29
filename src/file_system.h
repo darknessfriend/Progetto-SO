@@ -68,7 +68,7 @@ typedef struct{
 // inizializzazione del file system
 FileSystem* initFS();
 // creazione di un file
-FileHandle* createFile(const char* filename);
+FileHandle* createFile(FileSystem* fs, char* filename);
 // cancellazione di un file
 void eraseFile(const char* filename);
 // scrittura di un file
@@ -78,11 +78,11 @@ void readFile(FileHandle* handle, void* buffer, size_t size);
 // apertura di un file
 void seekFile(FileHandle* handle, int position);
 // creazione di una directory
-void createDir(FileSystem* fs, char* dirname);
+void createDir(FileSystem* fs, const char* dirname);
 // cancellazione di una directory
-void eraseDir(const char* dirname);
+void eraseDir(FileSystem* fs, const char* dirname);
 // cambio di directory
-void changeDir(const char* dirname);
+void changeDir(FileSystem* fs, const char* dirname);
 // stampa del contenuto di una directory
 void listDir(FileSystem* fs);
 // cancellazione del file system

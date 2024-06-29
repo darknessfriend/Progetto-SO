@@ -102,7 +102,7 @@ FileSystem* initFS() {
 }
 
 // Creazione di una directory
-void createDir(FileSystem* fs, char* dirname) {
+void createDir(FileSystem* fs, const char* dirname) {
 
     // Controllo parametri in input
     if (fs == NULL || dirname == NULL) {
@@ -144,6 +144,10 @@ void createDir(FileSystem* fs, char* dirname) {
         dir->dirs[i] = NULL;
     }
 
+    // Aggiungo la directory generatrice alla directory creata
+    dir->dirs[0] = fs->current_dir;
+    dir->num_dirs++;
+
     // Aggiungo la directory alla directory corrente
     fs->current_dir->dirs[fs->current_dir->num_dirs] = dir;
     fs->current_dir->num_dirs++;
@@ -151,6 +155,13 @@ void createDir(FileSystem* fs, char* dirname) {
 
 // Stampa il contenuto della directory corrente
 void listDir(FileSystem* fs){
+
+    // Controllo parametri in input
+    if (fs == NULL) {
+        printf("Error: invalid input parameters in createDir.\n");
+        return;
+    }
+
     printf("Directory corrente: %s\n", fs->current_dir->dirname);
     printf("Files:\n");
     for(int i = 0; i < fs->current_dir->num_files; i++){
@@ -164,6 +175,11 @@ void listDir(FileSystem* fs){
 
 // Cancellazione del file system
 void deleteFS(FileSystem* fs) {
+    // Controllo parametri in input
+    if (fs == NULL) {
+        printf("Error: invalid input parameters in createDir.\n");
+        return;
+    }
     // Libero l'area riservata
     free(fs->reserved_area);
     // Libero la FAT table
@@ -175,3 +191,46 @@ void deleteFS(FileSystem* fs) {
     // Libero il file system
     free(fs);
 }
+
+// Cambiare la directory corrente del filesystem
+void changeDir(FileSystem* fs, const char* dirname){
+    // Controllo parametri in input
+    if (fs == NULL || dirname == NULL) {
+        printf("Error: invalid input parameters in changeDir.\n");
+        return;
+    }
+    // Controllo se la directory esiste
+    for (int i = 0; i < fs->current_dir->num_dirs; i++) {
+        if (strcmp(fs->current_dir->dirs[i]->dirname, dirname) == 0) {
+            fs->current_dir = fs->current_dir->dirs[i];
+            printf("Directory changed to %s.\n", fs->current_dir->dirname);
+            return;
+        }
+    }
+    printf("Error: directory does not exist.\n");
+}
+
+// Eliminare una directory
+void eraseDir(FileSystem* fs, const char* dirname){
+    // Controllo parametri in input
+    if (fs == NULL || dirname == NULL) {
+        printf("Error: invalid input parameters in eraseDir.\n");
+        return;
+    }
+    // Controllo se la directory esiste
+    for (int i = 0; i < fs->current_dir->num_dirs; i++) {
+        if (strcmp(fs->current_dir->dirs[i]->dirname, dirname) == 0) {
+            // Libero la directory
+            free(fs->current_dir->dirs[i]);
+            // Sposto le directory successive
+            for (int j = i; j < fs->current_dir->num_dirs - 1; j++) {
+                fs->current_dir->dirs[j] = fs->current_dir->dirs[j + 1];
+            }
+            fs->current_dir->num_dirs--;
+            printf("Directory %s deleted.\n", dirname);
+            return;
+        }
+    }
+    printf("Error: directory does not exist.\n");
+}
+
