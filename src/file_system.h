@@ -68,7 +68,7 @@ typedef struct{
 // inizializzazione del file system
 FileSystem* initFS();
 // creazione di un file
-FileHandle* createFile(FileSystem* fs, char* filename);
+FileHandle* createFile(FileSystem* fs, const char* filename);
 // cancellazione di un file
 void eraseFile(const char* filename);
 // scrittura di un file

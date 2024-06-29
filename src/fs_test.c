@@ -43,7 +43,8 @@ int main(){
     changeDir(fs,"/");
     listDir(fs);
     printf("Creo un file nella directory corrente:\n");
-    createFile(fs,"file1");
+    FileHandle* file1 = createFile(fs,"file1");
+    listDir(fs);
     // Dealloco il file system
     deleteFS(fs);
     printf("Done. Exiting ...\n");

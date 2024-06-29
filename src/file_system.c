@@ -14,6 +14,12 @@
 // Tets print lo salvo un attimo qui
 // printf("flag\n");
 // fflush(stdout);
+// Controllo parametri:
+// Controllo parametri in input
+// if (fs == NULL || dirname == NULL) {
+//     printf("Error: invalid input parameters in createDir.\n");
+//     return;
+// }
 
 // Inizializzo filesystem
 FileSystem* initFS() {
@@ -162,6 +168,7 @@ void listDir(FileSystem* fs){
         return;
     }
 
+    printf("---------- List dir ----------\n");
     printf("Directory corrente: %s\n", fs->current_dir->dirname);
     printf("Files:\n");
     for(int i = 0; i < fs->current_dir->num_files; i++){
@@ -171,25 +178,7 @@ void listDir(FileSystem* fs){
     for(int i = 0; i < fs->current_dir->num_dirs; i++){
         printf("%s\n", fs->current_dir->dirs[i]->dirname);
     }
-}
-
-// Cancellazione del file system
-void deleteFS(FileSystem* fs) {
-    // Controllo parametri in input
-    if (fs == NULL) {
-        printf("Error: invalid input parameters in createDir.\n");
-        return;
-    }
-    // Libero l'area riservata
-    free(fs->reserved_area);
-    // Libero la FAT table
-    free(fs->FAT);
-    // Libero il data block
-    munmap(fs->data_blocks, MAX_BLOCKS * BLOCK_SIZE);
-    // Libero la root directory
-    free(fs->root);
-    // Libero il file system
-    free(fs);
+    printf("---------- End list ----------\n");
 }
 
 // Cambiare la directory corrente del filesystem
@@ -232,5 +221,84 @@ void eraseDir(FileSystem* fs, const char* dirname){
         }
     }
     printf("Error: directory does not exist.\n");
+}
+
+// Creare un file
+FileHandle* createFile(FileSystem* fs, const char* filename){
+    // Controllo parametri in input
+    if (fs == NULL || filename == NULL) {
+        printf("Error: invalid input parameters in createFile.\n");
+        return NULL;
+    }
+
+    // Controllo se il file esiste già
+    for (int i = 0; i < fs->current_dir->num_files; i++) {
+        if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
+            printf("Error: file already exists.\n");
+            return NULL;
+        }
+    }
+
+    // Inizializzo il file
+    FileHandle* file = (FileHandle*) malloc(sizeof(FileHandle));
+    // Gestisco l'errore
+    if (file == NULL) {
+        perror("Error: malloc failed.\n");
+        exit(1);
+    }
+
+    // Copio il nome del file
+    char* ret = strcpy(file->filename,filename);
+    // Gestisco l'errore
+    if (ret == NULL) {
+        perror("Error: strcpy failed.\n");
+        exit(1);
+    }
+
+    // Inizializzo la dimensione del file
+    file->size = 0;
+
+    // Cerco un blocco libero
+    int block = -1;
+    for (int i = 0; i < MAX_BLOCKS; i++) {
+        if (fs->FAT[i] == -1) {
+            block = i;
+            fs->FAT[i] = i;
+            break;
+        }
+    }
+    // Controllo se ho trovato un blocco libero
+    if (block == -1) {
+        printf("Error: no free blocks available.\n");
+        return NULL;
+    }
+
+    // Assegno il blocco al file
+    file->start_block = block;
+
+    // Aggiungo il file alla directory corrente
+    fs->current_dir->files[fs->current_dir->num_files] = file;
+    fs->current_dir->num_files++;
+
+    return file;
+}
+
+// Cancellazione del file system
+void deleteFS(FileSystem* fs) {
+    // Controllo parametri in input
+    if (fs == NULL) {
+        printf("Error: invalid input parameters in createDir.\n");
+        return;
+    }
+    // Libero l'area riservata
+    free(fs->reserved_area);
+    // Libero la FAT table
+    free(fs->FAT);
+    // Libero il data block
+    munmap(fs->data_blocks, MAX_BLOCKS * BLOCK_SIZE);
+    // Libero la root directory
+    free(fs->root);
+    // Libero il file system
+    free(fs);
 }
 
