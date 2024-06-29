@@ -1,7 +1,7 @@
 // #include <unistd.h>
 // #include <stdint.h>
 // #include <assert.h>
-// #include <string.h>
+#include <string.h>         // strlen
 // #include <fcntl.h>
 // #include <sys/types.h>
 // #include <sys/stat.h>
@@ -47,8 +47,15 @@ int main(){
     FileHandle* file1 = createFile(fs,"file1");
     listDir(fs);
     printf("Test fat (dovrebbe tornare 0): %d\n",fs->FAT[0]);
+    writeFile(fs,file1,"Hello, World!",680);
+    printf("Test fat (dovrebbe tornare 1): %d\n",fs->FAT[0]);
+    printf("Test fat (dovrebbe tornare 2): %d\n",fs->FAT[1]);
+    printf("Test fat (dovrebbe tornare -2): %d\n",fs->FAT[2]);
+    printf("Test fat (dovrebbe tornare -1): %d\n",fs->FAT[3]);
+    eraseFile(fs,"file1");
+    listDir(fs);
     // Dealloco il file system
-    // deleteFS(fs);
+    deleteFS(fs);
     printf("Done. Exiting ...\n");
     return 0;
 }

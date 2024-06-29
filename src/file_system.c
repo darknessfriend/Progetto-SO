@@ -271,7 +271,7 @@ FileHandle* createFile(FileSystem* fs, const char* filename){
     for (int i = 0; i < MAX_BLOCKS; i++) {
         if (fs->FAT[i] == -1) {
             block = i;
-            fs->FAT[i] = 0; // 0 indica che il blocco è occupato
+            fs->FAT[i] = -2; // -2 indica che il blocco è occupato (leggi documentazione in README.md)
             break;
         }
     }
@@ -292,31 +292,37 @@ FileHandle* createFile(FileSystem* fs, const char* filename){
 }
 
 // Cancellare un file
-// void eraseFile(FileSystem* fs, const char* filename){
-//     // Controllo parametri in input
-//     if (fs == NULL || filename == NULL) {
-//         printf("Error: invalid input parameters in eraseFile.\n");
-//         return;
-//     }
-//     // Controllo se il file esiste
-//     for (int i = 0; i < fs->current_dir->num_files; i++) {
-//         if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
-//             // Libero il blocco
-//             fs->FAT[fs->current_dir->files[i]->start_block] = -1;
-//             memset(fs->data_blocks[fs->current_dir->files[i]->start_block],0,BLOCK_SIZE);
-//             // Libero il file
-//             free(fs->current_dir->files[i]);
-//             // Sposto i file successivi
-//             for (int j = i; j < fs->current_dir->num_files - 1; j++) {
-//                 fs->current_dir->files[j] = fs->current_dir->files[j + 1];
-//             }
-//             fs->current_dir->num_files--;
-//             printf("File %s deleted.\n", filename);
-//             return;
-//         }
-//     }
-//     printf("Error: file does not exist.\n");
-// }
+void eraseFile(FileSystem* fs, const char* filename){
+    // Controllo parametri in input
+    if (fs == NULL || filename == NULL) {
+        printf("Error: invalid input parameters in eraseFile.\n");
+        return;
+    }
+    // Controllo se il file esiste
+    for (int i = 0; i < fs->current_dir->num_files; i++) {
+        if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
+            // Libero il blocco
+            int index = fs->current_dir->files[i]->start_block;
+            while(fs->FAT[index] != -2){
+                int next = fs->FAT[index];
+                memset(fs->data_blocks[index],0,BLOCK_SIZE);
+                fs->free_blocks++;
+                fs->FAT[index] = -1;
+                index = next;
+            }
+            // Libero il file
+            free(fs->current_dir->files[i]);
+            // Sposto i file successivi
+            for (int j = i; j < fs->current_dir->num_files - 1; j++) {
+                fs->current_dir->files[j] = fs->current_dir->files[j + 1];
+            }
+            fs->current_dir->num_files--;
+            printf("File %s deleted.\n", filename);
+            return;
+        }
+    }
+    printf("Error: file does not exist.\n");
+}
 
 // Scrivere un file
 void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t size){
@@ -342,7 +348,6 @@ void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t si
     size-=BLOCK_SIZE;
     // Aggiorno il numero di blocchi liberi
     fs->free_blocks--;
-
     // Scrivo il file sui blocchi di memoria liberi:
     // Memorizzo l'indice del blocco precedente in modo da poterlo collegare al blocco successivo
     // nella FAT table.
@@ -352,11 +357,13 @@ void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t si
     int allocated_blocks = 1;
     // Memorizzo un indice per scorrere la FAT table.
     for(int i = 0; i < MAX_BLOCKS; i++){
-        if (size <= 0) {
+        if ((int)size <= 0) {
             break;
         }
         // Ho trovato un blocco libero nella fat table
         if(fs->FAT[i] == -1){
+            // Setto il blocco come occupato (leggi documentazione in README.md)
+            fs->FAT[i] = -2;
             // Scrivo il blocco di memoria nel data block
             ret = memcpy(fs->data_blocks[i], buffer + allocated_blocks*BLOCK_SIZE, BLOCK_SIZE);
             // Gestisco l'errore
@@ -383,6 +390,11 @@ void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t si
         for (int i = 0; i < MAX_BLOCKS; i++) {
             if (fs->FAT[i] == -1) {
                 fs->FAT[previous_block] = i;
+                // In questa implementazione andrò a perdere un pò di memoria ma è
+                // necessario settare il blocco di memoria puntato dal previous ad un valore speciale
+                // in modo che non possa venire allocato nessun file in quel blocco altrimenti potrebbe
+                // creare problemi durante la lettura del file. (leggi documentazione in README.md)
+                fs->FAT[i] = -2;
                 break;
             }
         }
@@ -409,7 +421,7 @@ void deleteFS(FileSystem* fs) {
     for (int i = 0; i < MAX_BLOCKS; i++) {
         munmap(fs->data_blocks[i], BLOCK_SIZE);
     }
-    munmap(fs->data_blocks, MAX_BLOCKS * BLOCK_SIZE);
+    munmap(fs->data_blocks, MAX_BLOCKS * sizeof(void*));
     // Libero la root directory
     free(fs->root);
     // Libero il file system

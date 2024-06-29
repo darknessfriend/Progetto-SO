@@ -12,8 +12,14 @@ Realizing pseudo-FAT file system
 - fs_test.c: It contains the main function, and it's the file used to test the whole filesystem;
 - makefile: File used to compile the other files;
 
-# Fonti:
+# Fonts:
 - http://elm-chan.org/docs/fat_e.html;
 - https://it.wikipedia.org/wiki/File_Allocation_Table;
 - https://gitlab.com/grisetti/sistemi_operativi_2023_24/-/blob/main/slides/os_12_file_system.pdf
 - chat.openai.com;
+
+# Documentation
+-2 Value
+The value -2, used on file creation and on file writing. It's a special value. It means that a block
+cannot be overwritten, but doesn't either point a valid memory zone so if you are reading a file and
+the next FAT entry is -2, you reached the EOF.
