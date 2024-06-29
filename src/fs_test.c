@@ -16,8 +16,8 @@ FileSystem* fs;
 int main(){
     // Inizializzo filesystem
     fs = initFS();
-    printf("Offset of FAT: %ld\n", offsetof(FileSystem, start_index));
-    printf("Test (should return 0):\n%d;\n", fs->reserved_area->placeholder1);
+    // printf("Offset of start_index: %ld\n", offsetof(DirEntry, dirs));
+    printf("Test (should return -1):\n%d;\n", (*fs->FAT)[0]);
     printf("Done. Exiting ...\n");
     return 0;
 }

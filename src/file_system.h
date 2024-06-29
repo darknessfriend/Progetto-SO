@@ -31,33 +31,33 @@ typedef struct{
     int placeholder2;   // Offset 4
     int placeholder3;   // Offset 8
     int placeholder4;   // Offset 12
-} ReservedArea;
+} ReservedArea;         // TOT: 16 bytes
 
 // Struttura che rappresenta un file ( il nostro file desriptor )
 typedef struct{
     char filename[NAME_SIZE];   // Offset 0
     int size;                   // Offset 32
     int start_block;            // Offset 36
-} FileHandle;
+} FileHandle;                   // TOT: 40 bytes
 
 // Struttura che rappresenta una directory ( lista di file e directory )
 typedef struct{
     char dirname[NAME_SIZE];                // Offset 0
     FileHandle* files[MAX_FILES];           // Offset 32
-    struct DirEntry* dirs[MAX_FILES];       // Offset 32 + 64 * 36 = 2336    
-} DirEntry;
+    struct DirEntry* dirs[MAX_FILES];       // Offset 32 + 64 * 8 = 544    
+} DirEntry;                                 // TOT: 1056 bytes
 
 // Struttura che rappresenta un file system
 typedef struct{
     ReservedArea* reserved_area;                    // Offset 0
-    int FAT[MAX_BLOCKS];                            // Offset 4
-    int start_index;                                // Offset 4 + 1024 * 4 = 4100
+    int* FAT[MAX_BLOCKS];                           // Offset 8
+    int start_index;                                // Offset 8 + 1024 * 8 = 8200
     // uint8 sono 8 bit ovvero 1 byte. Noi volevamo allocare 512 byte per blocco
     // quindi abbiamo bisogno di 512 uint8 per blocco.
-    uint8_t data_blocks[MAX_BLOCKS][BLOCK_SIZE];    // Offset 4104
-    DirEntry* root;                                 // Offset 4104 + 1024 * 512 = 528392
-    DirEntry* current_dir;                          // Offset 528392 + 2336 = 530728
-} FileSystem;
+    uint8_t data_blocks[MAX_BLOCKS][BLOCK_SIZE];    // Offset 8204
+    DirEntry* root;                                 // Offset 8204 + 1024 * 512 = 532492
+    DirEntry* current_dir;                          // Offset 532492 + 8 = 532500
+} FileSystem;                                       // TOT: 532508 bytes
 
 // Dichiaro le funzioni che andrò ad implementare:
 // inizializzazione del file system
