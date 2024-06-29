@@ -1,13 +1,13 @@
 // Importo librerie necessarie ( classiche più quelle utilizzate dal professore )
-#include <unistd.h>
+// #include <unistd.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdlib.h>
+// #include <stdio.h>
+// #include <assert.h>
+// #include <string.h>
+// #include <fcntl.h>
+// #include <sys/types.h>
+// #include <sys/stat.h>
+// #include <stdlib.h>
 
 
 // Inizio a definire le strutture che saranno utilizzate per la
@@ -26,40 +26,42 @@
 // Struttura che rappresenta l'area riservata del file system.
 // Contiene informazioni non di nostro interess, ma ne terrò comunque
 // conto per completezza.
-typedef struct __attribute__((__packed__)) ReservedArea{
-    int placeholder1;
-    int placeholder2;
-    int placeholder3;
-    int placeholder4;
+typedef struct{
+    int placeholder1;   // Offset 0
+    int placeholder2;   // Offset 4
+    int placeholder3;   // Offset 8
+    int placeholder4;   // Offset 12
 } ReservedArea;
 
 // Struttura che rappresenta un file ( il nostro file desriptor )
 typedef struct{
-    char filename[NAME_SIZE];
-    int size;
-    int start_block;
+    char filename[NAME_SIZE];   // Offset 0
+    int size;                   // Offset 32
+    int start_block;            // Offset 36
 } FileHandle;
 
 // Struttura che rappresenta una directory ( lista di file e directory )
 typedef struct{
-    char dirname[NAME_SIZE];
-    struct DirEntry* dirs[MAX_FILES];
-    FileHandle* files[MAX_FILES];
+    char dirname[NAME_SIZE];                // Offset 0
+    FileHandle* files[MAX_FILES];           // Offset 32
+    struct DirEntry* dirs[MAX_FILES];       // Offset 32 + 64 * 36 = 2336    
 } DirEntry;
 
 // Struttura che rappresenta un file system
 typedef struct{
-    ReservedArea reserved_area;
+    ReservedArea* reserved_area;                    // Offset 0
+    int FAT[MAX_BLOCKS];                            // Offset 4
+    int start_index;                                // Offset 4 + 1024 * 4 = 4100
     // uint8 sono 8 bit ovvero 1 byte. Noi volevamo allocare 512 byte per blocco
     // quindi abbiamo bisogno di 512 uint8 per blocco.
-    int FAT[MAX_BLOCKS];
-    DirEntry* root;
-    DirEntry* current_dir;
+    uint8_t data_blocks[MAX_BLOCKS][BLOCK_SIZE];    // Offset 4104
+    DirEntry* root;                                 // Offset 4104 + 1024 * 512 = 528392
+    DirEntry* current_dir;                          // Offset 528392 + 2336 = 530728
 } FileSystem;
 
 // Dichiaro le funzioni che andrò ad implementare:
 // inizializzazione del file system
-void initFS();
+FileSystem* initFS();
 // creazione di un file
 FileHandle* createFile(const char* filename);
 // cancellazione di un file

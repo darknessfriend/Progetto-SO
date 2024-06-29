@@ -2,24 +2,31 @@
 // #include <unistd.h>
 // #include <stdint.h>
 // #include <assert.h>
-// #include <string.h>
 // #include <fcntl.h>
 // #include <sys/types.h>
 // #include <sys/stat.h>
-// #include <stdlib.h>
+#include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include "file_system.h"
 
-// Variabili globali
-FileSystem fs;
+// Tets print lo salvo un attimo qui
+// printf("flag\n");
+// fflush(stdout);
 
 // Inizializzo filesystem
-void initFS() {
+FileSystem* initFS() {
     // Inizializzo la struttura del file system
-    fs = (FileSystem) malloc(sizeof(FileSystem));
+    FileSystem* fs = (FileSystem*) malloc(sizeof(FileSystem));
     // Inizializzo l'area riservata
-    ReservedArea reserved_area = {0, 0, 0, 0};
-    fs.reserved_area = reserved_area;
+    ReservedArea* ra = (ReservedArea*) malloc(sizeof(ReservedArea));
+    ra->placeholder1 = 0;
+    ra->placeholder2 = 0;
+    ra->placeholder3 = 0;
+    ra->placeholder4 = 0;
+    fs->reserved_area = ra;
     // Inizializzo i blocchi liberi
-    memset(&fs.free_blocks, 0, sizeof(fs.free_blocks));
+    
+    memset(&((*fs).FAT), 0, sizeof(fs->FAT));
+    return fs;
 }
