@@ -414,8 +414,8 @@ void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t si
         }
     }
 
-    // Alla fine della nostra operazione, la l'elemento successivo dell'ultimo blocco allocato
-    // deve essere -1. Lo ricerco e lo setto.
+    // Alla fine della nostra operazione, l'elemento successivo dell'ultimo blocco allocato
+    // deve essere -2. Lo ricerco e lo setto.
     if ( fs->free_blocks > 0 ) {
         for (int i = 0; i < MAX_BLOCKS; i++) {
             if (fs->FAT[i] == -1) {
@@ -433,7 +433,7 @@ void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t si
         printf("Error: the file was allocated successfully, however there are no more blocks available!\n");
     }
 
-    handle->size = allocated_blocks*BLOCK_SIZE;
+    handle->size = strlen((char*)buffer);
 }
 
 // Cancellazione del file system
@@ -484,11 +484,29 @@ void readFile(FileSystem* fs, FileHandle* handle) {
         if (strcmp(fs->current_dir->files[i]->filename, handle->filename) == 0) {
             // Leggo il file
             int index = handle->start_block;
-            while(fs->FAT[index] != -2){
-                printf("%s",(char*)fs->data_blocks[index]);
+            for ( int j = 0; j < handle->size / BLOCK_SIZE+1; j++) {
+                printf("%s",(char*) fs->data_blocks[index]);
                 index = fs->FAT[index];
             }
+            printf("\n");
+            return;
         }
     }
-    printf("Error: file does not exist.\n");
+    printf("[readFile]Error: file does not exist.\n");
+}
+
+// Funzione per la modifica della posizione di lettura di un file
+void seekFile(FileHandle* handle, int position) {
+    // Controllo parametri in input
+    if (handle == NULL) {
+        printf("Error: invalid input parameters in seekFile.\n");
+        return;
+    }
+    // Controllo se la posizione è valida
+    if (position < 0 || position > handle->size) {
+        printf("Error: invalid position.\n");
+        return;
+    }
+    // Modifico la posizione di lettura
+    handle->size = position;
 }
