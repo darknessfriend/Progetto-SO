@@ -85,32 +85,11 @@ FileSystem* initFS() {
         }
     }
 
-    // Inizializzo la root directory
-    // Inizializzo la directory
-    fs->root = (DirEntry*) malloc(sizeof(DirEntry));
-    // Gestisco l'errore
-    if (fs->root == NULL) {
-        perror("Error: malloc failed.\n");
-        exit(1);
-    }
-    // Copio il nome della directory
-    char* ret1 = strcpy(fs->root->dirname,"/");
-    // Gestisco l'errore
-    if (ret1 == NULL) {
-        perror("Error: strcpy failed.\n");
-        exit(1);
-    }
-    // Inizializzo numero di file e directory
-    fs->root->num_files = 0;
-    fs->root->num_dirs = 0;
-    // Inizializzo i file e le directory
-    for (int i = 0; i < MAX_FILES; i++) {
-        fs->root->files[i] = NULL;
-        fs->root->dirs[i] = NULL;
-    }
+    // Setto la current dir a NULL per creare la root directory con la funzione createDir
+    fs->current_dir = NULL;
 
-    // Inizializzo la directory corrente
-    fs->current_dir = fs->root;
+    // Inizializzo la root directory e la setto a current dir
+    createDir(fs, "/");
 
     return fs;
 }
@@ -125,10 +104,12 @@ void createDir(FileSystem* fs, const char* dirname) {
     }
 
     // Controllo se la directory esiste già
-    for (int i = 0; i < fs->current_dir->num_dirs; i++) {
-        if (strcmp(fs->current_dir->dirs[i]->dirname, dirname) == 0) {
-            printf("Error: directory already exists.\n");
-            return;
+    if (fs->current_dir != NULL) {
+        for (int i = 0; i < fs->current_dir->num_dirs; i++) {
+            if (strcmp(fs->current_dir->dirs[i]->dirname, dirname) == 0) {
+                printf("Error: directory already exists.\n");
+                return;
+            }
         }
     }
 
@@ -159,8 +140,16 @@ void createDir(FileSystem* fs, const char* dirname) {
     }
 
     // Aggiungo la directory generatrice alla directory creata
-    dir->dirs[0] = fs->current_dir;
-    dir->num_dirs++;
+    // Se la directory corrente è NULL allora la directory creata è la root
+
+    if (fs->current_dir == NULL){
+        fs->current_dir = dir;
+        fs->root = dir;
+    }
+    else{
+        dir->dirs[0] = fs->current_dir;
+        dir->num_dirs++;
+    }
 
     // Aggiungo la directory alla directory corrente
     fs->current_dir->dirs[fs->current_dir->num_dirs] = dir;
@@ -207,6 +196,78 @@ void changeDir(FileSystem* fs, const char* dirname){
     printf("Error: directory does not exist.\n");
 }
 
+// Cancellare un file
+void eraseFile(FileSystem* fs, const char* filename){
+    // Controllo parametri in input
+    if (fs == NULL || filename == NULL) {
+        printf("Error: invalid input parameters in eraseFile.\n");
+        return;
+    }
+    // Controllo se il file esiste
+    for (int i = 0; i < fs->current_dir->num_files; i++) {
+        if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
+            // Libero il blocco
+            int index = fs->current_dir->files[i]->start_block;
+            while(fs->FAT[index] != -2){
+                int next = fs->FAT[index];
+                memset(fs->data_blocks[index],0,BLOCK_SIZE);
+                fs->free_blocks++;
+                fs->FAT[index] = -1;
+                index = next;
+            }
+
+            // Libero il blocco finale
+            fs->FAT[index] = -1;
+
+            // Libero il file handler
+            free(fs->current_dir->files[i]);
+
+            // Sposto i file successivi
+            for (int j = i; j < fs->current_dir->num_files - 1; j++) {
+                fs->current_dir->files[j] = fs->current_dir->files[j + 1];
+            }
+
+            // Diminuisco il numero di file
+            fs->current_dir->num_files--;
+
+            printf("File %s deleted.\n", filename);
+            return;
+        }
+    }
+    printf("Error: file does not exist.\n");
+}
+
+// Funzione ricorsiva di supporto per la cancellazione delle directory
+void destroyDIR(FileSystem* fs, DirEntry* dir){
+    // Controllo se la directory è vuota
+    if (dir == NULL) {
+        return;
+    }
+    // Libero i file
+    for (int i = 0; i < dir->num_files; i++) {
+        int index = dir->files[i]->start_block;
+        while(fs->FAT[index] != -2){
+            int next = fs->FAT[index];
+            memset(fs->data_blocks[index],0,BLOCK_SIZE);
+            fs->free_blocks++;
+            fs->FAT[index] = -1;
+            index = next;
+        }
+        // Libero il blocco finale
+        fs->FAT[index] = -1;
+        printf("File %s deleted.\n", dir->files[i]->filename);
+        // Libero il file
+        free(dir->files[i]);
+    }
+    dir->num_files = 0;
+    // Libero le subdirectory
+    for (int i = 1; i < dir->num_dirs; i++) {
+        destroyDIR(fs,dir->dirs[i]);
+    }
+    // Libero la directory
+    free(dir);
+}
+
 // Eliminare una directory
 void eraseDir(FileSystem* fs, const char* dirname){
     // Controllo parametri in input
@@ -218,17 +279,19 @@ void eraseDir(FileSystem* fs, const char* dirname){
     for (int i = 0; i < fs->current_dir->num_dirs; i++) {
         if (strcmp(fs->current_dir->dirs[i]->dirname, dirname) == 0) {
             // Libero la directory
-            free(fs->current_dir->dirs[i]);
+            destroyDIR(fs,fs->current_dir->dirs[i]);
             // Sposto le directory successive
-            for (int j = i; j < fs->current_dir->num_dirs - 1; j++) {
-                fs->current_dir->dirs[j] = fs->current_dir->dirs[j + 1];
+            if (strcmp(dirname,"/") != 0) {    
+                for (int j = i; j < fs->current_dir->num_dirs - 1; j++) {
+                    fs->current_dir->dirs[j] = fs->current_dir->dirs[j + 1];
+                }
+                fs->current_dir->num_dirs--;
             }
-            fs->current_dir->num_dirs--;
             printf("Directory %s deleted.\n", dirname);
             return;
         }
     }
-    printf("Error: directory does not exist.\n");
+    printf("[eraseDir]Error: directory does not exist.\n");
 }
 
 // Creare un file
@@ -289,39 +352,6 @@ FileHandle* createFile(FileSystem* fs, const char* filename){
     fs->current_dir->num_files++;
 
     return file;
-}
-
-// Cancellare un file
-void eraseFile(FileSystem* fs, const char* filename){
-    // Controllo parametri in input
-    if (fs == NULL || filename == NULL) {
-        printf("Error: invalid input parameters in eraseFile.\n");
-        return;
-    }
-    // Controllo se il file esiste
-    for (int i = 0; i < fs->current_dir->num_files; i++) {
-        if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
-            // Libero il blocco
-            int index = fs->current_dir->files[i]->start_block;
-            while(fs->FAT[index] != -2){
-                int next = fs->FAT[index];
-                memset(fs->data_blocks[index],0,BLOCK_SIZE);
-                fs->free_blocks++;
-                fs->FAT[index] = -1;
-                index = next;
-            }
-            // Libero il file
-            free(fs->current_dir->files[i]);
-            // Sposto i file successivi
-            for (int j = i; j < fs->current_dir->num_files - 1; j++) {
-                fs->current_dir->files[j] = fs->current_dir->files[j + 1];
-            }
-            fs->current_dir->num_files--;
-            printf("File %s deleted.\n", filename);
-            return;
-        }
-    }
-    printf("Error: file does not exist.\n");
 }
 
 // Scrivere un file
@@ -415,6 +445,8 @@ void deleteFS(FileSystem* fs) {
     }
     // Libero l'area riservata
     free(fs->reserved_area);
+    // Libero tutte le strutture DirEntry ed i FileHandle allocato dinamicamente:
+    eraseDir(fs,"/");
     // Libero la FAT table
     free(fs->FAT);
     // Libero il data block
@@ -422,9 +454,41 @@ void deleteFS(FileSystem* fs) {
         munmap(fs->data_blocks[i], BLOCK_SIZE);
     }
     munmap(fs->data_blocks, MAX_BLOCKS * sizeof(void*));
-    // Libero la root directory
-    free(fs->root);
     // Libero il file system
     free(fs);
 }
 
+// Stampa la FAT table (usata per il testing e debugging)
+void printFAT(FileSystem* fs, int range) {
+    int rangex;
+    if (range == -1){
+        rangex = MAX_BLOCKS;
+    }
+    else{
+        rangex = range;
+    }
+    for(int i = 0; i <= rangex; i++){
+        printf("FAT[%d] = %d\n",i,fs->FAT[i]);
+    }
+}
+
+// Funzione per la lettura di un file
+void readFile(FileSystem* fs, FileHandle* handle) {
+    // Controllo parametri in input
+    if (fs == NULL || handle == NULL) {
+        printf("Error: invalid input parameters in readFile.\n");
+        return;
+    }
+    // Controllo se il file esiste
+    for (int i = 0; i < fs->current_dir->num_files; i++) {
+        if (strcmp(fs->current_dir->files[i]->filename, handle->filename) == 0) {
+            // Leggo il file
+            int index = handle->start_block;
+            while(fs->FAT[index] != -2){
+                printf("%s",(char*)fs->data_blocks[index]);
+                index = fs->FAT[index];
+            }
+        }
+    }
+    printf("Error: file does not exist.\n");
+}

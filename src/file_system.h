@@ -72,7 +72,7 @@ void eraseFile(FileSystem* fs, const char* filename);
 // scrittura di un file
 void writeFile(FileSystem* fs, FileHandle* handle, const void* buffer, size_t size);
 // lettura di un file
-void readFile(FileHandle* handle, void* buffer, size_t size);
+void readFile(FileSystem* fs, FileHandle* handle);
 // apertura di un file
 void seekFile(FileHandle* handle, int position);
 // creazione di una directory
@@ -85,3 +85,5 @@ void changeDir(FileSystem* fs, const char* dirname);
 void listDir(FileSystem* fs);
 // cancellazione del file system
 void deleteFS(FileSystem* fs);
+// stampa della FAT
+void printFAT(FileSystem* fs, int range);
