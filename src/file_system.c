@@ -1,25 +1,8 @@
-// Importo librerie necessarie ( classiche più quelle utilizzate dal professore )
-// #include <unistd.h>
-// #include <stdint.h>
-// #include <assert.h>
-// #include <fcntl.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
 #include <string.h>         // memset
 #include <stdlib.h>         // malloc, free
 #include <stdio.h>          // printf, perror
 #include <sys/mman.h>       // mmap, munmap
 #include "file_system.h"
-
-// Tets print lo salvo un attimo qui
-// printf("flag\n");
-// fflush(stdout);
-// Controllo parametri:
-// Controllo parametri in input
-// if (fs == NULL || dirname == NULL) {
-//     printf("Error: invalid input parameters in createDir.\n");
-//     return;
-// }
 
 // Inizializzo filesystem
 FileSystem* initFS() {
@@ -65,7 +48,7 @@ FileSystem* initFS() {
     fs->free_blocks = 1024;
 
     // Inizializzo il data block
-    // Mappo l'area di memoria puntata dal data block, alloco MAX_BLOCKS * BLOCK_SIZE bytes
+    // Mappo l'area di memoria puntata dal data block, alloco MAX_BLOCKS * sizeof(void*) bytes
     // PROT_READ | PROT_WRITE indica che la memoria è sia leggibile che scrivibile
     // MAP_PRIVATE | MAP_ANONYMOUS indica che la memoria è privata e non è associata ad alcun file, infatti
     // il file descriptor è -1 propio perchè non è associato ad alcun file. Non ho bisogno di memset perchè
@@ -77,6 +60,7 @@ FileSystem* initFS() {
         exit(1);
     }
     for (int i = 0; i < MAX_BLOCKS; i++) {
+        // Mappo l'area di memoria puntata dal data block, alloco BLOCK_SIZE bytes
         fs->data_blocks[i] = (void*) mmap(NULL, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         // Gestisco l'errore
         if (*fs->data_blocks == MAP_FAILED) {
@@ -203,6 +187,7 @@ void eraseFile(FileSystem* fs, const char* filename){
         printf("Error: invalid input parameters in eraseFile.\n");
         return;
     }
+    void* ret;
     // Controllo se il file esiste
     for (int i = 0; i < fs->current_dir->num_files; i++) {
         if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
@@ -210,7 +195,12 @@ void eraseFile(FileSystem* fs, const char* filename){
             int index = fs->current_dir->files[i]->start_block;
             while(fs->FAT[index] != -2){
                 int next = fs->FAT[index];
-                memset(fs->data_blocks[index],0,BLOCK_SIZE);
+                ret = memset(fs->data_blocks[index],0,BLOCK_SIZE);
+                // Gestisco l'errore
+                if (ret == NULL) {
+                    perror("Error: memset failed.\n");
+                    exit(1);
+                }
                 fs->free_blocks++;
                 fs->FAT[index] = -1;
                 index = next;
@@ -239,16 +229,23 @@ void eraseFile(FileSystem* fs, const char* filename){
 
 // Funzione ricorsiva di supporto per la cancellazione delle directory
 void destroyDIR(FileSystem* fs, DirEntry* dir){
-    // Controllo se la directory è vuota
-    if (dir == NULL) {
+    // Controllo parametri in input
+    if (fs == NULL || dir == NULL) {
+        printf("Error: invalid input parameters in destroyDIR.\n");
         return;
     }
+    void* ret;
     // Libero i file
     for (int i = 0; i < dir->num_files; i++) {
         int index = dir->files[i]->start_block;
         while(fs->FAT[index] != -2){
             int next = fs->FAT[index];
-            memset(fs->data_blocks[index],0,BLOCK_SIZE);
+            ret = memset(fs->data_blocks[index],0,BLOCK_SIZE);
+            // Gestisco l'errore
+            if (ret == NULL) {
+                perror("Error: memset failed.\n");
+                exit(1);
+            }
             fs->free_blocks++;
             fs->FAT[index] = -1;
             index = next;
@@ -265,6 +262,7 @@ void destroyDIR(FileSystem* fs, DirEntry* dir){
         destroyDIR(fs,dir->dirs[i]);
     }
     // Libero la directory
+    printf("Directory %s deleted.\n", dir->dirname);
     free(dir);
 }
 
@@ -287,7 +285,6 @@ void eraseDir(FileSystem* fs, const char* dirname){
                 }
                 fs->current_dir->num_dirs--;
             }
-            printf("Directory %s deleted.\n", dirname);
             return;
         }
     }
@@ -450,16 +447,33 @@ void deleteFS(FileSystem* fs) {
     // Libero la FAT table
     free(fs->FAT);
     // Libero il data block
+    int ret;
     for (int i = 0; i < MAX_BLOCKS; i++) {
-        munmap(fs->data_blocks[i], BLOCK_SIZE);
+        ret = munmap(fs->data_blocks[i], BLOCK_SIZE);
+        // Gestisco l'errore
+        if (ret == -1) {
+            perror("Error: munmap failed.\n");
+            exit(1);
+        }
     }
-    munmap(fs->data_blocks, MAX_BLOCKS * sizeof(void*));
+    ret = munmap(fs->data_blocks, MAX_BLOCKS * sizeof(void*));
+    // Gestisco l'errore
+    if (ret == -1) {
+        perror("Error: munmap failed.\n");
+        exit(1);
+    }
     // Libero il file system
     free(fs);
 }
 
 // Stampa la FAT table (usata per il testing e debugging)
 void printFAT(FileSystem* fs, int range) {
+    // Controllo parametri in input
+    if (fs == NULL) {
+        printf("Error: invalid input parameters in printFAT.\n");
+        return;
+    }
+
     int rangex;
     if (range == -1){
         rangex = MAX_BLOCKS;
@@ -467,9 +481,11 @@ void printFAT(FileSystem* fs, int range) {
     else{
         rangex = range;
     }
+    printf("---------- FAT Table ----------\n");
     for(int i = 0; i <= rangex; i++){
         printf("FAT[%d] = %d\n",i,fs->FAT[i]);
     }
+    printf("---------- End FAT Table ----------\n");
 }
 
 // Funzione per la lettura di un file
@@ -508,5 +524,22 @@ void seekFile(FileHandle* handle, int position) {
         return;
     }
     // Modifico la posizione di lettura
-    handle->size = position;
+    handle->start_block = position / BLOCK_SIZE;
+}
+
+// Trova un file nel filesystem
+FileHandle* findFile(FileSystem* fs, const char* filename){
+    // Controllo parametri in input
+    if (fs == NULL || filename == NULL) {
+        printf("Error: invalid input parameters in findFile.\n");
+        return NULL;
+    }
+    // Controllo se il file esiste
+    for (int i = 0; i < fs->current_dir->num_files; i++) {
+        if (strcmp(fs->current_dir->files[i]->filename, filename) == 0) {
+            return fs->current_dir->files[i];
+        }
+    }
+    printf("Error: file does not exist.\n");
+    return NULL;
 }

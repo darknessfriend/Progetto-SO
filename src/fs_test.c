@@ -1,7 +1,4 @@
-// #include <unistd.h>
-// #include <stdint.h>
 #include <string.h>         // strlen
-// #include <stdlib.h>
 #include <stddef.h>         // offsetof
 #include <stdio.h>          // printf
 #include "file_system.h"
@@ -20,8 +17,8 @@ int main(){
     printf("Test (dovrebbe ritornare /): %s;\n",fs->root->dirname);
     printf("Test (dovrebbe ritornare /): %s;\n",fs->current_dir->dirname);
     printf("----------- Test initFS completati ----------\n");
-    // // Creo una directory come subdirectory della root
     printf("---------- Test generale file system ----------\n");
+    // Test directory
     printf("Creo una directory come subdirectory della root:\n");
     createDir(fs,"subdir");
     printf("Creo una directory con lo stesso nome ( va in errore gestito e continua l'esecuzione ).\n");
@@ -32,6 +29,7 @@ int main(){
     printf("Creo 2 directory come subdirectory della subdir:\n");
     createDir(fs,"subdir2");
     createDir(fs,"subdir3");
+    // Test file
     printf("Creo file nella subdir:\n");
     FileHandle* file = createFile(fs,"file");
     writeFile(fs,file,"Hello, World!",13);
@@ -50,13 +48,14 @@ int main(){
     file2 = createFile(fs,"file2");
     FileHandle* file3 = createFile(fs,"file3");
     listDir(fs);
-    printFAT(fs,3);
+    printFAT(fs,6);
     writeFile(fs,file1,"[file1]Hello, World!",680);
     printf("Provo a chiedere tutta la memoria:\n");
     writeFile(fs,file2,"[file2]Hello, World!",524288);
     writeFile(fs,file2,"[file2]Hello, World!",6800);
     writeFile(fs,file3,"[file3]Hello, World!",5000);
-    printFAT(fs,8);
+    printf("Fat table dopo la scrittura di file2 e file3:\n");
+    printFAT(fs,25);
     eraseFile(fs,"file1");
     eraseFile(fs,"file2");
     FileHandle* file4 = createFile(fs,"file4");
@@ -66,7 +65,7 @@ int main(){
     listDir(fs);
     printf("Provo ad effettuare una lettura del file4 ( lettura su più blocchi ):\n");
     readFile(fs,file4);
-    // // Dealloco il file system
+    // Dealloco il file system
     printf("Dealloco il filesystem.\n");
     printf("Done. Exiting ...\n");
     deleteFS(fs);

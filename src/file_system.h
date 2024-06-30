@@ -1,18 +1,3 @@
-// Importo librerie necessarie ( classiche più quelle utilizzate dal professore )
-// #include <unistd.h>
-#include <stdint.h>        // uint8_t
-// #include <stdio.h>
-// #include <assert.h>
-// #include <string.h>
-// #include <fcntl.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
-// #include <stdlib.h>
-
-
-// Inizio a definire le strutture che saranno utilizzate per la
-// gestione del mio file system e le variabili globali che mi serviranno
-
 // Numero massimo di blocchi di memoria che posso utilizzare
 #define MAX_BLOCKS 1024
 // Dimensione di un blocco
@@ -87,3 +72,5 @@ void listDir(FileSystem* fs);
 void deleteFS(FileSystem* fs);
 // stampa della FAT
 void printFAT(FileSystem* fs, int range);
+// Trova un file all'interno del filesystem
+FileHandle* findFile(FileSystem* fs, const char* filename);
