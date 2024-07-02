@@ -9,8 +9,7 @@ sudo apt install make
 
 To run the program just type: 
 ```bash
-sudo apt install make
-./mount
+make && ./mount
 ```
 
 # Folders:
