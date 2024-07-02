@@ -525,6 +525,7 @@ void seekFile(FileHandle* handle, int position) {
     }
     // Modifico la posizione di lettura
     handle->start_block = position / BLOCK_SIZE;
+    handle->size = position;
 }
 
 // Trova un file nel filesystem

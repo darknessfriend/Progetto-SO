@@ -1,4 +1,0 @@
-// VSCode C/C++ extension error squiggles are disabled
-{
-    "C_Cpp.errorSquiggles": "disabled"
-}
