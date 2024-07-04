@@ -2,6 +2,8 @@
 #include <stdlib.h>         // malloc, free
 #include <stdio.h>          // printf, perror
 #include <sys/mman.h>       // mmap, munmap
+#include <unistd.h>         // ftruncate
+#include <fcntl.h>          // open
 #include "file_system.h"
 
 // Inizializzo filesystem
@@ -30,43 +32,68 @@ FileSystem* initFS() {
     // Assegno la memoria riservata al file system
     fs->reserved_area = ra;
 
-    // Inizializzo FAT table: -1 indica che il blocco è libero
-    fs->FAT = (int*) malloc(MAX_BLOCKS * sizeof(int));
+    // Inizializzo l'indice di partenza
+    fs->free_blocks = 1024;
+
+    // Apri il file
+    int fd = open("mem", O_RDWR | O_CREAT, 0666);
     // Gestisco l'errore
-    if (fs->FAT == NULL) {
-        perror("Error: malloc failed.\n");
+    if (fd == -1) {
+        perror("Error opening file");
         exit(1);
     }
-    void* ret = memset(fs->FAT, -1, MAX_BLOCKS * sizeof(int));
+
+    // Imposta la dimensione del file
+    if (ftruncate(fd, fat_size + pointer_array_size + total_size) == -1) {
+        perror("Error setting file size");
+        exit(1);
+    }
+
+    // Mappa l'intero file in memoria
+    void* full_map = mmap(NULL, fat_size + pointer_array_size + total_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     // Gestisco l'errore
-    if (ret == NULL) {
+    if (full_map == MAP_FAILED) {
+        perror("Error mmapping the file");
+        exit(1);
+    }
+
+    // Chiudi il file descriptor
+    int ret = close(fd);
+    // Gestisco l'errore
+    if (ret == -1) {
+        perror("Error closing file");
+        exit(1);
+    }
+
+    // Alloca spazio per la FAT
+    fs->FAT = (int*)full_map;
+    // Inizializza la FAT a -1
+    void* ret1 = memset(fs->FAT, -1, fat_size);
+    // Gestisco l'errore
+    if (ret1 == NULL) {
         perror("Error: memset failed.\n");
         exit(1);
     }
 
-    // Inizializzo l'indice di partenza
-    fs->free_blocks = 1024;
-
-    // Inizializzo il data block
-    // Mappo l'area di memoria puntata dal data block, alloco MAX_BLOCKS * sizeof(void*) bytes
-    // PROT_READ | PROT_WRITE indica che la memoria è sia leggibile che scrivibile
-    // MAP_PRIVATE | MAP_ANONYMOUS indica che la memoria è privata e non è associata ad alcun file, infatti
-    // il file descriptor è -1 propio perchè non è associato ad alcun file. Non ho bisogno di memset perchè
-    // con la flag MAP_ANONYMOUS la memoria è già inizializzata a 0.
-    fs->data_blocks = (void**) mmap(NULL, MAX_BLOCKS * sizeof(void*), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    // Alloca spazio per l'array di puntatori
+    fs->data_blocks = malloc(pointer_array_size);
     // Gestisco l'errore
-    if (fs->data_blocks == MAP_FAILED) {
-        perror("Error: mmap failed.\n");
+    if (fs->data_blocks == NULL) {
+        perror("Error allocating memory for pointer array");
         exit(1);
     }
+
+    // Imposta i puntatori ai blocchi
     for (int i = 0; i < MAX_BLOCKS; i++) {
-        // Mappo l'area di memoria puntata dal data block, alloco BLOCK_SIZE bytes
-        fs->data_blocks[i] = (void*) mmap(NULL, BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        // Gestisco l'errore
-        if (*fs->data_blocks == MAP_FAILED) {
-            perror("Error: mmap failed.\n");
-            exit(1);
-        }
+        fs->data_blocks[i] = (void*)full_map + fat_size + pointer_array_size + i * BLOCK_SIZE;
+    }
+
+    // Inizializza tutti i blocchi del datablocks a zero
+    ret1 = memset(full_map + fat_size + pointer_array_size, 0, total_size);
+    // Gestisco l'errore
+    if ( ret1 == NULL) {
+        perror("Error in memset.\n");
+        exit(1);
     }
 
     // Setto la current dir a NULL per creare la root directory con la funzione createDir
@@ -444,19 +471,10 @@ void deleteFS(FileSystem* fs) {
     free(fs->reserved_area);
     // Libero tutte le strutture DirEntry ed i FileHandle allocato dinamicamente:
     eraseDir(fs,"/");
-    // Libero la FAT table
-    free(fs->FAT);
     // Libero il data block
-    int ret;
-    for (int i = 0; i < MAX_BLOCKS; i++) {
-        ret = munmap(fs->data_blocks[i], BLOCK_SIZE);
-        // Gestisco l'errore
-        if (ret == -1) {
-            perror("Error: munmap failed.\n");
-            exit(1);
-        }
-    }
-    ret = munmap(fs->data_blocks, MAX_BLOCKS * sizeof(void*));
+    free(fs->data_blocks);
+    // Libero la FAT table
+    int ret = munmap(fs->FAT, fat_size + pointer_array_size + total_size);
     // Gestisco l'errore
     if (ret == -1) {
         perror("Error: munmap failed.\n");

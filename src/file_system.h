@@ -7,6 +7,12 @@
 // Numero massimo di directory/file che posso avere in una directory
 // ( Funzione di comodo per non dover allocare dinamicamente la memoria )
 #define MAX_FILES 64
+// Dimensione del file system
+#define FILESYSTEM_SIZE 528384
+// Calcola la dimensione totale
+#define pointer_array_size MAX_BLOCKS * sizeof(void*)
+#define total_size MAX_BLOCKS * BLOCK_SIZE
+#define fat_size MAX_BLOCKS * sizeof(int)
 
 // Struttura che rappresenta l'area riservata del file system.
 // Contiene informazioni non di nostro interess, ma ne terrò comunque
